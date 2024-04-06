@@ -13,8 +13,13 @@
 					system = system;
 				}; in
 				{
-					devShell = import ./shell.nix { inherit pkgs; };
-					#defaultPackage = import ./default.nix { inherit pkgs; };
+					defaultPackage = pkgs.buildGoModule {
+						pname = "auto_brightness";
+						version = "0.1.0";
+						src = ./.;
+						#vendorHash = pkgs.lib.fakeHash;
+						vendorHash = null;
+					};
 				}
 			);
 }
