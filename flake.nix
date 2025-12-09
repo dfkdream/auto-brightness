@@ -17,7 +17,7 @@
         {
           packages.default = pkgs.buildGoModule {
             pname = "auto_brightness";
-            version = "0.1.0";
+            version = "1.0.0";
             src = ./.;
             #vendorHash = pkgs.lib.fakeHash;
             vendorHash = null;

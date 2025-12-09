@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -41,16 +42,44 @@ func main() {
 	}
 
 	if *filepath != "" {
-		f, err := os.OpenFile(*filepath, os.O_WRONLY|os.O_TRUNC, 0664)
+		currentBrightness := -1
+
+		content, err := os.ReadFile(*filepath)
 		if err != nil {
-			log.Fatal(err)
+			log.Println("Failed to read file:", err)
+			goto write
 		}
 
-		defer f.Close()
-
-		_, err = f.WriteString(strconv.Itoa(int(brightness)))
+		currentBrightness, err = strconv.Atoi(strings.TrimSpace(string(content)))
 		if err != nil {
-			log.Fatal(err)
+			log.Println("Failed to parse current brightness:", err)
+			currentBrightness = -1
+		}
+
+		if *verbose {
+			fmt.Println("Current brightness:", currentBrightness)
+		}
+
+	write:
+		{
+			if currentBrightness == int(brightness) {
+				if *verbose {
+					fmt.Println("Skipping file write.")
+				}
+				return
+			}
+
+			f, err := os.OpenFile(*filepath, os.O_WRONLY|os.O_TRUNC, 0664)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			defer f.Close()
+
+			_, err = f.WriteString(strconv.Itoa(int(brightness)))
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
