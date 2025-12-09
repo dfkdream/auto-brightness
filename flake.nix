@@ -1,25 +1,35 @@
 {
-	description = "Automatically adjust brightness over time";
+  description = "Automatically adjust brightness over time";
 
-	inputs = {
-		nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-		flake-utils.url = "github:numtide/flake-utils";
-	};
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
 
-	outputs = { self, nixpkgs, flake-utils }:
-		flake-utils.lib.eachDefaultSystem
-			(system:
-				let pkgs = import nixpkgs {
-					system = system;
-				}; in
-				{
-					packages.default = pkgs.buildGoModule {
-						pname = "auto_brightness";
-						version = "0.1.0";
-						src = ./.;
-						#vendorHash = pkgs.lib.fakeHash;
-						vendorHash = null;
-					};
-				}
-			);
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem
+      (system:
+        let
+          pkgs = import nixpkgs {
+            system = system;
+          };
+        in
+        {
+          packages.default = pkgs.buildGoModule {
+            pname = "auto_brightness";
+            version = "0.1.0";
+            src = ./.;
+            #vendorHash = pkgs.lib.fakeHash;
+            vendorHash = null;
+          };
+
+          devShell = pkgs.mkShell {
+            buildInputs = with pkgs; [
+              go
+            ];
+          };
+
+          formatter = pkgs.nixpkgs-fmt;
+        }
+      );
 }
