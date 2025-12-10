@@ -14,6 +14,7 @@ import (
 func main() {
 	verbose := flag.Bool("v", false, "verbose output")
 	filepath := flag.String("f", "", "output file path")
+	forceWrite := flag.Bool("force-write", false, "write to output file without any checks")
 	min := flag.Int("min", 0, "minimum brightness")
 	max := flag.Int("max", 100, "maximum brightness")
 
@@ -31,55 +32,70 @@ func main() {
 
 	magd2 := float64(*max-*min) / 2
 
-	brightness := magd2 - magd2*math.Cos(math.Pi*float64(minutes)/(12*60)) + float64(*min)
+	floatBrightness := magd2 - magd2*math.Cos(math.Pi*float64(minutes)/(12*60)) + float64(*min)
+
+	brightness := int(floatBrightness)
 
 	if *verbose {
-		fmt.Printf("Calculated brightness: %d\n", int(brightness))
+		fmt.Printf("Calculated brightness: %d\n", brightness)
+	} else {
+		fmt.Print(brightness)
 	}
 
-	if !*verbose && *filepath == "" {
-		fmt.Print(int(brightness))
+	if *filepath == "" {
+		return
 	}
 
-	if *filepath != "" {
-		currentBrightness := -1
+	if *forceWrite {
+		writeBrightness(*filepath, brightness)
+		return
+	}
 
-		content, err := os.ReadFile(*filepath)
-		if err != nil {
-			log.Println("Failed to read file:", err)
-			goto write
-		}
+	currentBrightness, err := getCurrentBrightness(*filepath)
+	if err != nil {
+		log.Println("Failed to read current brightness:", err)
+		writeBrightness(*filepath, brightness)
+		return
+	}
 
-		currentBrightness, err = strconv.Atoi(strings.TrimSpace(string(content)))
-		if err != nil {
-			log.Println("Failed to parse current brightness:", err)
-			currentBrightness = -1
-		}
+	if *verbose {
+		fmt.Println("Current brightness:", currentBrightness)
+	}
 
+	if currentBrightness == int(brightness) {
 		if *verbose {
-			fmt.Println("Current brightness:", currentBrightness)
+			fmt.Println("Skipping file write.")
 		}
-
-	write:
-		{
-			if currentBrightness == int(brightness) {
-				if *verbose {
-					fmt.Println("Skipping file write.")
-				}
-				return
-			}
-
-			f, err := os.OpenFile(*filepath, os.O_WRONLY|os.O_TRUNC, 0664)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			defer f.Close()
-
-			_, err = f.WriteString(strconv.Itoa(int(brightness)))
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
+		return
 	}
+
+	writeBrightness(*filepath, brightness)
+}
+
+func writeBrightness(filepath string, brightness int) {
+	f, err := os.OpenFile(filepath, os.O_WRONLY|os.O_TRUNC, 0664)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	_, err = f.WriteString(strconv.Itoa(int(brightness)))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func getCurrentBrightness(filepath string) (int, error) {
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		return -1, err
+	}
+
+	currentBrightness, err := strconv.Atoi(strings.TrimSpace(string(content)))
+	if err != nil {
+		return -1, err
+	}
+
+	return currentBrightness, nil
 }
